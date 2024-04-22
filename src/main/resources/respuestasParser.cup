@@ -1,0 +1,95 @@
+package edu.cunoc.Conexion;
+
+import java_cup.runtime.*;
+import java_cup.runtime.XMLElement;
+import java.util.*;
+
+parser code {:
+
+    private Respuesta respuesta;
+
+    public RespuestasParser(RespuestasScanner lex){
+        super(lex);
+        this.respuesta = new Respuesta();
+    }
+
+    public Respuesta getRespuesta(){
+        return respuesta;
+    }
+
+    public void syntax_error(Symbol cur_token) {
+            System.out.println("Simbolo con error:" + symbl_name_from_id(cur_token.sym));
+                        System.out.println("Linea " + cur_token.left+" Columna " + cur_token.right);
+                        String posibleLex = "";
+                        if (cur_token.value != null){
+                            System.out.println("Lexema: "+cur_token.value);
+                            posibleLex = "Lexema: "+(String) cur_token.value;
+                        }
+                        respuesta.addErrorSintactico("Error sintactico al encontrar el simbolo:" + symbl_name_from_id(cur_token.sym)+"\nLinea " +
+                                cur_token.left+", Columna \n" + cur_token.right+posibleLex);
+                        if (expected_token_ids().isEmpty()) {
+                            System.out.println("ya no se esperaba ningun simbolo");
+                        } else {
+                        List<Integer> ids = this.expected_token_ids();
+                                LinkedList<String> list = new LinkedList();
+                                Iterator var3 = ids.iterator();
+
+                                while(var3.hasNext()) {
+                                    Integer expected = (Integer)var3.next();
+                                    list.add(this.symbl_name_from_id(expected));
+                                }
+                                          respuesta.addErrorSintactico("Se esperaba uno de los tokens:" + list.toString());
+                                                                        report_expected_token_ids();
+                                                                    }
+                    }
+
+:}
+
+/* Terminales */
+
+    terminal MENORQUE, LEXICO, MAYORQUE, DIAGONAL, SINTACTICO, ARCHIVO, SUCCESS, PAROP, PARCLO;
+    terminal String STRING;
+
+/* No terminales */
+
+ 	nonterminal script, errores, mensajes, lexError, sinError, fileError, success, preMensajes;
+
+/* Gramatica */
+
+  start with script;
+
+  script ::= mensajes							{:  :}
+            ;
+
+
+  preMensajes::= errores
+                ;
+
+  mensajes ::= MENORQUE preMensajes mensajes				{:  :}
+                |								{:  :}
+  				;
+
+  errores ::= lexError							{:  :}
+  			| sinError							{:  :}
+            | fileError							{:  :}
+                | success                       {:  :}
+            ;
+
+  lexError ::=  LEXICO MAYORQUE PAROP STRING:s PARCLO MENORQUE DIAGONAL LEXICO MAYORQUE		{: respuesta.addErrorlexico(s); :}
+  				;
+
+  sinError ::=  SINTACTICO MAYORQUE PAROP STRING:s PARCLO MENORQUE DIAGONAL SINTACTICO MAYORQUE		{:
+  respuesta.addErrorSintactico(s); :}
+  				;
+
+  fileError ::=  ARCHIVO MAYORQUE PAROP STRING:s PARCLO  MENORQUE DIAGONAL ARCHIVO MAYORQUE		{:
+  respuesta.addErrorArchivo(s); :}
+  				;
+
+  success ::=  SUCCESS MAYORQUE PAROP STRING:s PARCLO MENORQUE DIAGONAL SUCCESS MAYORQUE 		{:
+  respuesta.addExito(s); :}
+  				;
+
+
+
+
